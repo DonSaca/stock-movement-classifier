@@ -1,0 +1,29 @@
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# Environment variables
+.env
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints
+
+# Data and models (we don’t want to commit large files)
+data/
+models/
+*.parquet
+*.csv
+*.pt
+*.pth
+
+# OS / editor specific
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,27 @@
+
+---
+
+### 3. `config.yaml`
+```yaml
+# Global experiment settings
+seed: 42
+
+# Universe of stocks
+universe: 
+  - AAPL
+  - MSFT
+  - SPY
+
+# Date range for data
+start_date: "2010-01-01"
+
+# Train/validation/test splits
+splits:
+  train_end: "2019-12-31"
+  val_end: "2022-12-30"
+
+# Model parameters
+lookback: 60   # number of past days used as input
+label:
+  horizon_days: 1   # predict movement 1 day ahead
+  epsilon: 0.001    # threshold for "no movement"
