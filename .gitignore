@@ -16,8 +16,8 @@ venv/
 .ipynb_checkpoints
 
 # Data and models (we don’t want to commit large files)
-data/
-models/
+/data/
+/models/
 *.parquet
 *.csv
 *.pt
