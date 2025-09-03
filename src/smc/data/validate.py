@@ -26,39 +26,42 @@ def _basic_fixes(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _check_df(df: pd.DataFrame) -> dict:
-    out = dict()
+    report = {}
 
-    out["row_count"] = int(df.shape[0])
-    out["col_ok"] = all(c in df.columns for c in REQUIRED_COLS)
+    report["row_count"] = int(df.shape[0])
+    report["col_ok"] = all(c in df.columns for c in REQUIRED_COLS)
 
-    # Missing values
+    # Missing values count
     na_counts = df[["open", "high", "low", "close", "adj_close", "volume"]].isna().sum()
-    out["na_any"] = bool(na_counts.sum() > 0)
-    out["na_breakdown"] = {k: int(v) for k, v in na_counts.items()}
+    report["na_any"] = bool(na_counts.sum() > 0)
+    report["na_breakdown"] = {k: int(v) for k, v in na_counts.items()}
+
+    # Flag if any entire column is missing/empty
+    empty_cols = []
+    for c in ["open", "high", "low", "close", "adj_close", "volume"]:
+        if c not in df.columns or df[c].isna().all() or (df[c] == 0).all():
+            empty_cols.append(c)
+    report["empty_columns"] = empty_cols
 
     # Duplicates and order
-    dup_count = int(df.duplicated(subset=["date"]).sum())
-    out["duplicate_dates"] = dup_count
+    report["duplicate_dates"] = int(df.duplicated(subset=["date"]).sum())
+    report["sorted"] = bool(df["date"].is_monotonic_increasing)
 
-    # Sorted strictly?
-    is_sorted = df["date"].is_monotonic_increasing
-    out["sorted"] = bool(is_sorted)
-
-    # Sanity for values
+    # Sanity checks for values
     neg_prices = (df[["open", "high", "low", "close", "adj_close"]] < 0).sum().sum()
-    out["negative_prices"] = int(neg_prices)
+    report["negative_prices"] = int(neg_prices)
 
     zero_vol_days = int((df["volume"].fillna(0) == 0).sum())
-    out["zero_volume_days"] = zero_vol_days
+    report["zero_volume_days"] = zero_vol_days
 
-    # Simple gap metric (not exact trading calendar): count >3 day gaps
+    # Simple gap metric (rough, not trading-calendar aware)
     if df.shape[0] >= 2:
         gaps = df["date"].diff().dt.days.fillna(0)
-        out["gaps_gt3_days"] = int((gaps > 3).sum())
+        report["gaps_gt3_days"] = int((gaps > 3).sum())
     else:
-        out["gaps_gt3_days"] = 0
+        report["gaps_gt3_days"] = 0
 
-    return out
+    return report
 
 
 def validate_files(files: List[Path], fix: bool, write_back: bool) -> Tuple[pd.DataFrame, List[Path]]:

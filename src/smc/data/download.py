@@ -22,89 +22,66 @@ def _today_utc_date_str() -> str:
 
 def _normalize_df(df: pd.DataFrame, ticker: str) -> pd.DataFrame:
     """
-    Normalize yfinance output into columns:
-      date, open, high, low, close, adj_close, volume, ticker
-
-    Handles:
-      - Series -> single-row DataFrame
-      - MultiIndex columns -> flattened
-      - several column name variants (case-insensitive)
-      - safe numeric conversion using .values to ensure 1-D input to pd.to_numeric
+    Normalize yfinance OHLCV DataFrame into schema:
+    date, open, high, low, close, adj_close, volume, ticker
     """
     import pandas as pd
 
     REQUIRED_COLS = ["date", "open", "high", "low", "close", "adj_close", "volume"]
 
-    # empty / none handling
+    # Handle None/empty
     if df is None or (hasattr(df, "empty") and df.empty):
         return pd.DataFrame(columns=REQUIRED_COLS + ["ticker"])
 
-    # If a Series (happens sometimes), convert to single-row DataFrame
+    # If Series, convert to DataFrame
     if isinstance(df, pd.Series):
         df = df.to_frame().T
 
-    # Flatten MultiIndex columns if present (e.g., (TICKER, 'Open') -> 'Open')
-    if getattr(df.columns, "nlevels", 1) > 1:
-        def _flatten(col):
-            if isinstance(col, tuple):
-                # prefer the last level if non-empty, else first
-                return col[-1] if col[-1] not in (None, "") else col[0]
-            return col
-        df = df.copy()
-        df.columns = [_flatten(c) for c in df.columns]
+    # If MultiIndex (like ('Adj Close','AAPL')), keep only first level (field name)
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = [c[0] for c in df.columns]
 
-    # Work on a copy and reset index to get 'Date' as a column if it was the index
+    # Reset index to get Date as a column
     df = df.copy()
     df.reset_index(inplace=True)
 
-    # Build a flexible case-insensitive rename map for common column names
-    col_map = {}
-    for c in df.columns:
-        lc = str(c).strip().lower()
-        if lc in ("date", "index", "datetime"):
-            col_map[c] = "date"
-        elif lc in ("open", "o"):
-            col_map[c] = "open"
-        elif lc == "high":
-            col_map[c] = "high"
-        elif lc == "low":
-            col_map[c] = "low"
-        elif lc in ("close", "c"):
-            col_map[c] = "close"
-        elif lc in ("adj close", "adj_close", "adjusted close", "adjclose"):
-            col_map[c] = "adj_close"
-        elif lc in ("volume", "vol"):
-            col_map[c] = "volume"
+    # Rename columns to standard names
+    rename_map = {
+        "Date": "date",
+        "Open": "open",
+        "High": "high",
+        "Low": "low",
+        "Close": "close",
+        "Adj Close": "adj_close",
+        "Volume": "volume",
+    }
+    df.rename(columns=rename_map, inplace=True)
 
-    df.rename(columns=col_map, inplace=True)
-
-    # Ensure expected columns exist (fill with NA if missing)
-    for col in ("open", "high", "low", "close", "adj_close", "volume"):
+    # Ensure all expected columns exist
+    for col in ["open", "high", "low", "close", "adj_close", "volume"]:
         if col not in df.columns:
             df[col] = pd.NA
 
-    # Date conversion (robust)
+    # Convert types
+    df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.tz_localize(None)
+
+    for col in ["open", "high", "low", "close", "adj_close"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Volume: safe cast to Int64
+    vol_vals = pd.to_numeric(df["volume"], errors="coerce")
     try:
-        df["date"] = pd.to_datetime(df["date"], utc=False).dt.tz_localize(None)
+        df["volume"] = vol_vals.astype("Int64")
     except Exception:
-        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+        df["volume"] = vol_vals
 
-    # Numeric conversions: use .values so to_numeric receives a 1-D array
-    for col in ("open", "high", "low", "close", "adj_close"):
-        df[col] = pd.to_numeric(df[col].values, errors="coerce")
-
-    # Volume: coerce then try Int64, fallback to float if Int64 fails
-    vol_vals = pd.to_numeric(df["volume"].values, errors="coerce")
-    try:
-        df["volume"] = pd.Series(vol_vals).astype("Int64")
-    except Exception:
-        df["volume"] = pd.Series(vol_vals)
-
+    # Add ticker column
     df["ticker"] = ticker.upper()
+
+    # Sort and drop duplicate dates
     df = df.sort_values("date").drop_duplicates(subset=["date"], keep="last").reset_index(drop=True)
 
-    # Return columns in stable order
-    return df[["date", "open", "high", "low", "close", "adj_close", "volume", "ticker"]]
+    return df[REQUIRED_COLS + ["ticker"]]
 
 
 def _fetch(ticker: str, start: str, end: str) -> pd.DataFrame:
