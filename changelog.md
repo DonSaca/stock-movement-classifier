@@ -1,9 +1,14 @@
-feat(data): implement yfinance ingestion and validation pipeline
+INCOMPLETE
 
-- Added download.py to fetch daily OHLCV from yfinance and cache as Parquet
-- Added validate.py to check schema, NaNs, duplicates, gaps, and column integrity
-- Normalized columns (date, open, high, low, close, adj_close, volume, ticker)
-- Verified data integrity for AAPL, MSFT, SPY from 2015 onwards
+feat(labels): add next-day log-return labeling with dead-zone (ε=0.001) and per-ticker handling
+
+- src/smc/labels.py: compute_next_log_return, label_from_returns, make_labels, save_labels
+- tests/test_labels.py: unit tests for dead-zone and multi-ticker grouping
+- update config.yaml example: label.horizon_days, label.epsilon
 
 
-Added changelog
+
+
+
+added setup.cfg
+install pytest

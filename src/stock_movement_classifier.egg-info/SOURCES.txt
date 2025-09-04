@@ -1,0 +1,14 @@
+README.md
+setup.cfg
+setup.py
+src/smc/__init__.py
+src/smc/labels.py
+src/smc/data/__init__.py
+src/smc/data/download.py
+src/smc/data/validate.py
+src/stock_movement_classifier.egg-info/PKG-INFO
+src/stock_movement_classifier.egg-info/SOURCES.txt
+src/stock_movement_classifier.egg-info/dependency_links.txt
+src/stock_movement_classifier.egg-info/requires.txt
+src/stock_movement_classifier.egg-info/top_level.txt
+tests/test_labels.py

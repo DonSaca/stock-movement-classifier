@@ -1,0 +1,14 @@
+numpy
+pandas
+yfinance
+ta
+scikit-learn
+torch
+pyyaml
+joblib
+
+[dev]
+pytest
+matplotlib
+pre-commit
+jupyter
