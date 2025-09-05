@@ -1,4 +1,4 @@
-INCOMPLETE
+COMPLETE
 
 feat(labels): add next-day log-return labeling with dead-zone (ε=0.001) and per-ticker handling
 
